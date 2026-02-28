@@ -1,3 +1,3 @@
 # Hotdog!
-![Hotdog! Atari 7800 box art](images/hotdogboxartv1.png)
+<img src="images/hotdogboxartv1.png" alt="Hotdog! Atari 7800 box art" width="100">   
 An Atari 7800 game built by members of  the Chicagoland Atari Alliance.
