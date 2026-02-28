@@ -23,8 +23,9 @@ GNU GENERAL PUBLIC LICENSE Version 3
 Not sure if this is the right one.
 
 ## Resources
-7800 Basic Guide:
-https://www.randomterrain.com/7800basic.html
+7800 Basic Guide: https://www.randomterrain.com/7800basic.html
+
+Controls: https://www.randomterrain.com/7800basic.html#controls
 
 7800 Basic Lessons on Youtube: https://youtu.be/UOckFmgrzWc?si=xw3X31sp3o1dyBkh
 
