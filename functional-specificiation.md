@@ -22,7 +22,17 @@ GNU GENERAL PUBLIC LICENSE Version 3
 
 Not sure if this is the right one.
 
-## Traditional Chicago Hotdog ingredients
+## Project goal
+The goal of the project is to make a game for the 7800 based around the premise that hot dog has to be built with the proper ratio of ingredients, avoiding ketchup at all costs.
+
+## Questions/Open Issues
+Verticle or horizontal?
+Do you control the hot dog or the person dispensing the ingredients?
+What’s the best way to prepare Sprite graphics? GIMP or sprite editor in Atari Dev studio?
+
+## Resources
+
+### Traditional Chicago Hotdog ingredients
 - All-beef frankfurter (traditionally Vienna Beef, a kosher-style dog)
 - Poppy seed bun
 - Yellow mustard
@@ -35,7 +45,8 @@ Not sure if this is the right one.
 
 Absolutely no ketchup!
 
-## Resources
+### Links
+
 7800 Basic Guide: https://www.randomterrain.com/7800basic.html
 
 Controls: https://www.randomterrain.com/7800basic.html#controls
