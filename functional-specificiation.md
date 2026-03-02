@@ -22,6 +22,19 @@ GNU GENERAL PUBLIC LICENSE Version 3
 
 Not sure if this is the right one.
 
+## Traditional Chicago Hotdog ingredients
+- All-beef frankfurter (traditionally Vienna Beef, a kosher-style dog)
+- Poppy seed bun
+- Yellow mustard
+- Bright green sweet pickle relish (often called "Chicago-style relish")
+- Chopped white onion
+- Tomato slices or wedges
+- Kosher dill pickle spear
+- Pickled sport peppers (a variety of Capsicum annuum; often substituted with pepperoncini)
+- Celery salt (a dash)
+
+Absolutely no ketchup!
+
 ## Resources
 7800 Basic Guide: https://www.randomterrain.com/7800basic.html
 
