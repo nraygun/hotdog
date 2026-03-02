@@ -31,14 +31,15 @@ Atari 7800
 - Avoid scrolling backgrounds, which are more tricky
 - The 7800 doesn't have collision detection APIs so we'll have to code our own sprite overlap algorithm
 ## Gameplay
-Proposal from Manny: We could have a ketchup bottle bounce around the screen while the player(the bun?) tries to catch the other ingredients in order. If you touch the ketchup, lose a life. Not sure what would happen if you touch an ingredient that is out of order(like touching mustard before the frank). Maybe remove the last ingredient and spawn it in some other random space in the playing field.
-And then the playfield could represent a hotdog stand(Jim's Original, Demon Dogs, etc.) with different obstacles that the player has to maneuver around to get to the ingredients while avoiding the ketchup.
 
-From John: One thing I was thinking is is that maybe not so much of an order of ingredients but rather the amount of ingredients you get applied. Maybe as you pick up more ingredients the hotdog gets heavier, and therefore is moving slower and therefore is more susceptible to being killed or whatever.
+From John(in addition to the info in the "Project goal" section): One thing I was thinking is is that maybe not so much of an order of ingredients but rather the amount of ingredients you get applied. Maybe as you pick up more ingredients the hotdog gets heavier, and therefore is moving slower and therefore is more susceptible to being killed or whatever.
 One example that I was thinking of was if it was a “fast food “style game where things are coming horizontally across the screen, one of the things would be splashes of ketchup coming towards them., Which would be sort of like the purple pickles in the fast food game. I know this isn’t the most original idea either.
 So one thing I was thinking about is that if you get too much of an ingredient on that that could be a detriment, like imagine you get you pick up too much celery, salt, but you’re not getting the other ingredients. So the strategy would be as you’re picking up other ingredients either a you can pick up too much of one ingredient or be you are getting heavier and slower as you pick up additional ingredients therefore impeding your gain performance and putting you a greater risk of being killed. So you kind of wanna be fairly light and nimble until you get all of the ingredients to pass that level.
 
 The other thing that would be kind of cool to do with this game is to have a couple different levels where the action is a little bit different. Definitely need to get one gameplay down first and then it could be alternate levels.
+
+Proposal from Manny: We could have a ketchup bottle bounce around the screen while the player(the bun?) tries to catch the other ingredients in order. If you touch the ketchup, lose a life. Not sure what would happen if you touch an ingredient that is out of order(like touching mustard before the frank). Maybe remove the last ingredient and spawn it in some other random space in the playing field.
+And then the playfield could represent a hotdog stand(Jim's Original, Demon Dogs, etc.) with different obstacles that the player has to maneuver around to get to the ingredients while avoiding the ketchup.
 
 ## Questions/Open Issues
 
