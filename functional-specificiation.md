@@ -14,7 +14,7 @@ GNU GENERAL PUBLIC LICENSE Version 3
 
 Not sure if this is the right one.
 
-## Forum post
+## AtariAge forum post
 https://forums.atariage.com/topic/388087-introduction/
 
 This link contains the original description of the game and initial discussion.
