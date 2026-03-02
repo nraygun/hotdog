@@ -26,9 +26,16 @@ Not sure if this is the right one.
 The goal of the project is to make a game for the 7800 based around the premise that hot dog has to be built with the proper ratio of ingredients, avoiding ketchup at all costs.
 
 ## Questions/Open Issues
-Verticle or horizontal?
-Do you control the hot dog or the person dispensing the ingredients?
-What’s the best way to prepare Sprite graphics? GIMP or sprite editor in Atari Dev studio?
+### Verticle or horizontal?
+
+### Do you control the hot dog or the person dispensing the ingredients?
+
+### What’s the best way to prepare Sprite graphics? GIMP or sprite editor in Atari Dev studio?
+
+### What’s the best way to prepare Sprite graphics? GIMP or sprite editor in Atari Dev studio?
+
+Manny - I vote we use the sprite editor within ADS
+
 
 ## Resources
 
