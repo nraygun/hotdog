@@ -8,6 +8,7 @@ The goal of the project is to make a game for the 7800 based around the premise 
 ## Contributors
 - John Keller
 - Manny Flores
+- Thomas Rogers
 
 ## License
 GNU GENERAL PUBLIC LICENSE Version 3
