@@ -103,3 +103,4 @@ Atari Dev Studio for Visual Studio Code: https://forums.atariage.com/topic/29036
 
 Github basics: https://www.youtube.com/watch?v=i_23KUAEtUM
 
+Eagle's 7800 tools: https://7800tools.com/
