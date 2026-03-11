@@ -68,7 +68,7 @@ Manny - I vote we document the specs of the game first.
 https://7800.8bitdev.org/index.php/Sprites_As_Tiles_On_The_7800
 
 ## Resources
-![Vienna hotdog](images/vienna hot dog.png)
+![Vienna hotdog](./images/vienna hot dog.png)
 
 ### Traditional Chicago Hotdog ingredients
 - All-beef frankfurter (traditionally Vienna Beef, a kosher-style dog)
