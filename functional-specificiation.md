@@ -67,6 +67,9 @@ Manny - I vote we document the specs of the game first.
 ### 9. Recommend the use of a tile program, which I have to still figure out.
 https://7800.8bitdev.org/index.php/Sprites_As_Tiles_On_The_7800
 
+### 10. Boss ideas
+Final boss could none other than...Abe Froman!
+
 ## Resources
 ![Vienna hotdog](./images/viennahotdog.png)
 
