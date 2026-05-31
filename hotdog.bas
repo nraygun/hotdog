@@ -14,6 +14,9 @@
  set screenheight 192
  displaymode 160A
 
+ rem --- enable the TIA music tracker (for the title-screen tune) ---
+ set trackersupport basic
+
  rem --- ingredient + character sprites ---
  incgraphic gfx/bun.png
  incgraphic gfx/ketchup.png
@@ -41,6 +44,12 @@
  incgraphic gfx/dig8.png
  incgraphic gfx/dig9.png
 
+ rem --- 160A text-label graphics (match the digit style; stay crisp in 160A
+ rem     screens where 320A plotchars text would render doubled/blurry) ---
+ incgraphic gfx/score_label.png
+ incgraphic gfx/gameover_label.png
+ incgraphic gfx/pressfire_label.png
+
  rem --- variables ---
  dim bunx=a
  dim buny=b
@@ -64,6 +73,9 @@
  dim tens=u
  dim hundreds=v
  dim thousands=w
+ dim tuneon=x
+ dim splitactive=y
+ dim showitem=z
 
  rem --- palette 0: bun (tan body, brown shade, dark poppy seeds) ---
  P0C1=$1C
@@ -80,19 +92,44 @@
  P5C2=$0F
  P5C3=$0F
 
+ rem --- palette 4: red (KETCHUP "ENEMY" warning text) ---
+ P4C1=$44
+ P4C2=$44
+ P4C3=$44
+
  state=0
+ tuneon=0
+ showitem=0
+ splitactive=0
 
  rem ===================== TITLE =====================
+ rem  Split display: 320A crisp text in the header + footer, with a 160A band
+ rem  carved out of the middle (via adjustvisible + top/bottomscreenroutine)
+ rem  for the colorful 160A ingredient sprites. Set up once on entry.
 titlescreen
+ splitactive=1
+ adjustvisible 6 8
+ if tuneon=0 then playsong hotdogmarch 100 : tuneon=1
+titleloop
+ displaymode 320A
  clearscreen
  BACKGRND=$00
- plotchars 'HOTDOG!' 5 60 3
- plotchars 'CATCH THE FOOD' 5 28 6
- plotchars 'AVOID THE KETCHUP' 5 22 7
- plotchars 'PRESS FIRE' 5 44 10
+ frame=frame+1
+ rem --- ketchup beat: gentle red flash behind the title ---
+ if showitem=5 && frame&16 then BACKGRND=$42
+ rem --- header (320A crisp), centered: x=(160-len*4)/2 ---
+ plotchars 'HOTDOG!' 5 66 2
+ plotchars 'CATCH THE FOOD' 5 52 4
+ plotchars 'AVOID THE KETCHUP' 5 46 5
+ rem --- 160A ingredient showcase, advancing on a timer (~on the beat) ---
+ if frame>=50 then frame=0 : showitem=showitem+1
+ if showitem>5 then showitem=0
+ gosub drawshowcase
+ rem --- footer (320A crisp), below the showcase name/role ---
+ plotchars 'PRESS FIRE' 5 60 11
  drawscreen
- if joy0fire then gosub newgame : state=1 : goto playloop
- goto titlescreen
+ if joy0fire then stopsong : playsfx sfx_powerup : gosub newgame : state=1 : goto playloop
+ goto titleloop
 
  rem ===================== GAMEPLAY =====================
 playloop
@@ -115,7 +152,7 @@ playloop
 
  rem --- collisions ---
  if boxcollision(bunx,buny,14,12, ix,iy,14,12) then gosub gotfood
- if inv=0 && boxcollision(bunx,buny,14,12, kx,ky,14,14) then gosub gothit
+ if inv=0 && boxcollision(bunx,buny,14,12, kx,ky,14,20) then gosub gothit
  if inv>0 then inv=inv-1
  if lives=0 then state=2
 
@@ -138,37 +175,48 @@ playloop
  if inv>0 then bvis=frame&4
  if bvis then plotsprite bun 0 bunx buny
 
- rem --- HUD: score digits + remaining lives as bun icons ---
- plotchars 'SCORE' 5 8 0
+ rem --- HUD: score in the top zone; lives moved to the BOTTOM zone so the busy
+ rem     top area can't exceed Maria's per-scanline DMA budget when food/ketchup/
+ rem     player cluster up there (was 8 sprites in the top zone -> garble/"hang") ---
+ plotsprite score_label 5 8 2
  plotsprite dig0 5 56 3 thousands
  plotsprite dig0 5 64 3 hundreds
  plotsprite dig0 5 72 3 tens
  plotsprite dig0 5 80 3 ones
- if lives>=1 then plotsprite bun 0 110 4
- if lives>=2 then plotsprite bun 0 126 4
- if lives>=3 then plotsprite bun 0 142 4
+ if lives>=1 then plotsprite bun 0 8 184
+ if lives>=2 then plotsprite bun 0 24 184
+ if lives>=3 then plotsprite bun 0 40 184
 
  drawscreen
- if state=2 then goto gameoverscreen
+ if state=2 then playsfx sfx_downthepipe : goto gameoverscreen
  goto playloop
 
  rem ===================== GAME OVER =====================
 gameoverscreen
+ rem --- full-screen 160A (split disabled) so the digit sprites render
+ rem     correctly; text uses the 160A label graphics ---
+ splitactive=0
+ adjustvisible 0 11
+ displaymode 160A
  clearscreen
  BACKGRND=$44
- plotchars 'GAME OVER' 5 44 4
- plotchars 'SCORE' 5 40 7
- plotsprite dig0 5 84 106 thousands
- plotsprite dig0 5 92 106 hundreds
- plotsprite dig0 5 100 106 tens
- plotsprite dig0 5 108 106 ones
- plotchars 'PRESS FIRE' 5 44 10
+ plotsprite gameover_label 5 44 50
+ plotsprite score_label 5 36 100
+ plotsprite dig0 5 88 100 thousands
+ plotsprite dig0 5 96 100 hundreds
+ plotsprite dig0 5 104 100 tens
+ plotsprite dig0 5 112 100 ones
+ plotsprite pressfire_label 5 40 150
  drawscreen
- if joy0fire then gosub newgame : state=1 : goto playloop
+ if joy0fire then playsfx sfx_powerup : gosub newgame : state=1 : goto playloop
  goto gameoverscreen
 
  rem ===================== SUBROUTINES =====================
 newgame
+ rem --- gameplay: full-screen 160A; disable the title's split-mode band ---
+ splitactive=0
+ adjustvisible 0 11
+ displaymode 160A
  lives=3
  ones=0
  tens=0
@@ -212,20 +260,332 @@ setfoodpalette
  return
 
 gotfood
+ rem --- catch blip; pitch rises with ingredient (frank->mustard->relish->onion) ---
+ playsfx sfx_bling itype
  ones=ones+1
  if ones>9 then ones=0 : tens=tens+1
  if tens>9 then tens=0 : hundreds=hundreds+1
  if hundreds>9 then hundreds=0 : thousands=thousands+1
  catches=catches+1
  flash=8
- if catches=8 then kspeed=2
+ if catches=8 then kspeed=2 : playsfx sfx_uhoh
  gosub spawnfood
  return
 
 gothit
+ playsfx sfx_ouch
  lives=lives-1
  inv=60
  hitflash=12
  bunx=72
  buny=150
  return
+
+ rem --- title ingredient showcase: ONLY the 160A sprite lives in the band (one
+ rem     object per scanline = no flicker); the name + role are crisp 320A
+ rem     plotchars in the footer below, same atascii font as the rest of the
+ rem     title. Foods 0-3 set their P2 palette via setfoodpalette.
+ rem     plotchars x centered = (160 - len*4)/2 = 80 - len*2. ---
+drawshowcase
+ if showitem<4 then itype=showitem : gosub setfoodpalette
+ rem --- sprite low in the 160A band, just above the name (band is ~y96-127) ---
+ if showitem=0 then plotsprite frank 2 72 110
+ if showitem=1 then plotsprite mustard 2 72 110
+ if showitem=2 then plotsprite relish 2 70 110
+ if showitem=3 then plotsprite onion 2 72 110
+ if showitem=4 then plotsprite bun 0 72 110
+ rem --- ketchup is taller (22px); raise it so it bottom-aligns inside the band ---
+ if showitem=5 then plotsprite ketchup 1 72 104
+ rem --- name (320A footer, same font), centered ---
+ if showitem=0 then plotchars 'FRANKS' 5 68 9
+ if showitem=1 then plotchars 'MUSTARD' 5 66 9
+ if showitem=2 then plotchars 'RELISH' 5 68 9
+ if showitem=3 then plotchars 'ONIONS' 5 68 9
+ if showitem=4 then plotchars 'BUN' 5 74 9 : plotchars 'PLAYER' 5 68 10
+ if showitem=5 then plotchars 'KETCHUP' 5 66 9 : plotchars 'ENEMY' 5 70 10
+ return
+
+ rem ===================== DISPLAY-SPLIT INTERRUPTS =====================
+ rem  These fire every frame at the top/bottom of the "visible" region set by
+ rem  adjustvisible. On the title (splitactive=1) they carve a 160A band out
+ rem  of the 320A screen; elsewhere (splitactive=0) everything stays 160A so
+ rem  gameplay/game-over sprites never see a stray 320A zone.
+topscreenroutine
+ WSYNC=1
+ displaymode 160A
+ WSYNC=1
+ return
+
+bottomscreenroutine
+ WSYNC=1
+ if splitactive then displaymode 320A else displaymode 160A
+ WSYNC=1
+ return
+
+ rem ===================== SOUND DATA =====================
+ rem  Title-screen tune (TIA tracker) + event sound effects.
+ rem  Instruments + song authored for HOTDOG!; sfx blocks are
+ rem  from the 7800basic soundtest library.
+
+ data tiaplain
+  $10,$00,$00 ; version, priority, frames per chunk
+  $00,$08 ; note offset, volume
+  $00,$08
+  $00,$06
+  $00,$04
+  $00,$00
+end
+
+ data tiabass
+  $10,$00,$02 ; version, priority, frames per chunk
+  $00,$06
+  $00,$04
+  $00,$04
+  $00,$00
+end
+
+ rem =================== THE SONG ===================
+ songdata hotdogmarch
+
+ ;---- voice 1: melody ----
+main1
+ k=a3
+ i=tiaplain
+ ; bar1 C            bar2 C
+ g8 e8 g8 a8   g8 e8 c8 r8     g8 e8 g8 > c8   < a8 g8 e8 r8
+ ; bar3 F            bar4 G
+ a8 f8 a8 > c8   < a8 f8 a8 r8   b8 g8 b8 > d8   < g4 r4
+ ; bar5 C            bar6 C
+ > c8 < g8 e8 g8   > c8 < g8 e8 r8   a8 g8 e8 c8   g8 e8 c8 r8
+ ; bar7 G            bar8 C
+ d8 g8 b8 > d8   < g8 b8 > d8 r8 <   > c4 < g8 e8   c2
+
+ ;---- voice 2: oom-pah bass ----
+main2
+ k=a2
+ i=tiabass
+ ; C                C
+ c8 r8 g8 r8 c8 r8 g8 r8     c8 r8 g8 r8 c8 r8 g8 r8
+ ; F                G
+ f8 r8 > c8 < r8 f8 r8 > c8 < r8     g8 r8 > d8 < r8 g8 r8 > d8 < r8
+ ; C                C
+ c8 r8 g8 r8 c8 r8 g8 r8     c8 r8 g8 r8 c8 r8 g8 r8
+ ; G                C
+ g8 r8 > d8 < r8 g8 r8 > d8 < r8     c8 r8 g8 r8 c2
+end
+
+ rem ---- event sound effects ----
+ data sfx_bling
+ $10,$10,$00 ; version, priority, frames per chunk
+ $1c,$04,$07
+ $1b,$04,$07
+ $04,$0f,$05
+ $15,$04,$09
+ $16,$04,$07
+ $03,$0f,$04
+ $11,$04,$08
+ $11,$04,$08
+ $11,$04,$04
+ $0e,$04,$09
+ $0e,$04,$07
+ $0e,$04,$04
+ $1c,$04,$07
+ $1b,$04,$05
+ $1c,$04,$04
+ $1b,$04,$02
+ $00,$00,$00
+end
+
+ data sfx_ouch
+ $10,$10,$00 ; version, priority, frames per chunk
+ $07,$0c,$0f ; first chunk of freq,channel,volume
+ $07,$0c,$0f
+ $07,$0c,$0f
+ $18,$04,$07
+ $19,$04,$04
+ $07,$0c,$09
+ $19,$04,$0f
+ $19,$04,$0d
+ $19,$04,$0f
+ $19,$04,$0f
+ $1b,$04,$0f
+ $1b,$04,$0f
+ $1b,$04,$0f
+ $1b,$04,$0f
+ $1b,$04,$09
+ $1b,$04,$05
+ $1b,$04,$03
+ $1b,$04,$02
+ $1c,$04,$01
+ $1c,$04,$01
+ $1c,$04,$01
+ $1b,$04,$02
+ $19,$04,$00
+ $1b,$04,$00
+ $19,$04,$01
+ $00,$00,$00
+end
+
+ data sfx_downthepipe
+ $10,$10,$00 ; version, priority, frames per chunk
+ $1e,$06,$0f ; first chunk of freq,channel,volume
+ $1e,$06,$0f
+ $18,$04,$08
+ $0c,$0c,$0d
+ $12,$0c,$0b
+ $0a,$06,$06
+ $18,$04,$0a
+ $0c,$0c,$0b
+ $03,$06,$0f
+ $1e,$0c,$0e
+ $1e,$06,$0f
+ $0f,$06,$0f
+ $1e,$06,$02
+ $1e,$06,$00
+ $1e,$06,$00
+ $07,$06,$00
+ $1e,$06,$0f
+ $1e,$06,$0f
+ $18,$04,$08
+ $0c,$0c,$0d
+ $12,$0c,$0b
+ $0a,$06,$06
+ $18,$04,$0a
+ $0c,$0c,$0b
+ $03,$06,$0f
+ $1e,$0c,$0e
+ $1e,$06,$0f
+ $0f,$06,$0f
+ $1e,$06,$02
+ $1e,$06,$00
+ $1e,$06,$00
+ $07,$06,$00
+ $1e,$06,$0f
+ $1e,$06,$0f
+ $18,$04,$08
+ $0c,$0c,$0d
+ $12,$0c,$0b
+ $0a,$06,$06
+ $18,$04,$0a
+ $0c,$0c,$0b
+ $03,$06,$0f
+ $1e,$0c,$0e
+ $1e,$06,$0f
+ $0f,$06,$0f
+ $1e,$06,$02
+ $1e,$06,$00
+ $1e,$06,$00
+ $07,$06,$00
+ $00,$00,$00
+end
+
+ data sfx_powerup
+ $10,$10,$00 ; version, priority, frames per chunk
+ $1e,$06,$0f ; first chunk of freq,channel,volume
+ $1c,$04,$0f
+ $0c,$0c,$0f
+ $0c,$0c,$0f
+ $0c,$0c,$0f
+ $1c,$04,$0f
+ $1b,$04,$0a
+ $16,$04,$09
+ $12,$04,$07
+ $12,$04,$0e
+ $12,$04,$08
+ $0d,$04,$03
+ $12,$04,$08
+ $12,$04,$0f
+ $0b,$0c,$0f
+ $0b,$0c,$0f
+ $0b,$0c,$0c
+ $1c,$04,$06
+ $1c,$04,$0c
+ $07,$0c,$0f
+ $07,$0c,$09
+ $05,$0c,$0a
+ $18,$04,$07
+ $07,$0c,$0f
+ $07,$0c,$0a
+ $05,$0c,$0c
+ $05,$0c,$05
+ $1e,$06,$03
+ $03,$0c,$04
+ $03,$0c,$04
+ $03,$0c,$04
+ $02,$0c,$08
+ $03,$0c,$04
+ $1e,$06,$02
+ $0a,$0c,$0e
+ $0a,$0c,$0f
+ $1e,$04,$0d
+ $19,$04,$08
+ $15,$04,$0b
+ $15,$04,$0f
+ $15,$04,$08
+ $0f,$04,$07
+ $15,$04,$07
+ $15,$04,$0c
+ $06,$0c,$07
+ $0f,$04,$02
+ $00,$06,$04
+ $01,$0c,$00
+ $0a,$04,$04
+ $0a,$04,$08
+ $0a,$04,$03
+ $07,$04,$03
+ $0a,$04,$03
+ $00,$00,$00
+end
+
+ data sfx_uhoh
+ $10,$10,$00 ; version, priority, frames per chunk
+ $07,$06,$01 ; first chunk of freq,channel,volume
+ $1e,$0c,$03
+ $1e,$0c,$04
+ $17,$0c,$04
+ $0a,$06,$06
+ $0a,$0c,$0a
+ $07,$06,$0f
+ $1e,$04,$0f
+ $19,$04,$0f
+ $19,$04,$0f
+ $1b,$04,$07
+ $18,$04,$07
+ $18,$04,$04
+ $07,$0c,$02
+ $16,$04,$00
+ $16,$04,$00
+ $16,$04,$00
+ $0f,$06,$00
+ $1e,$06,$00
+ $1e,$06,$00
+ $1e,$06,$00
+ $19,$04,$00
+ $1e,$04,$01
+ $1e,$04,$0a
+ $1c,$04,$0f
+ $1c,$04,$0f
+ $1e,$04,$0f
+ $1b,$0c,$0f
+ $0d,$0c,$0f
+ $0d,$0c,$0e
+ $0e,$0c,$0f
+ $0e,$0c,$0f
+ $0e,$0c,$0f
+ $0e,$0c,$0f
+ $0e,$0c,$0f
+ $0e,$0c,$0d
+ $1b,$0c,$0a
+ $04,$0c,$0a
+ $1b,$0c,$0b
+ $0e,$0c,$0a
+ $0e,$0c,$0a
+ $1b,$0c,$0a
+ $0d,$0c,$0a
+ $0d,$0c,$06
+ $0e,$0c,$04
+ $0e,$0c,$04
+ $0e,$0c,$02
+ $00,$00,$00
+end
+
