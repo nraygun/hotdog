@@ -50,6 +50,19 @@
  incgraphic gfx/gameover_label.png
  incgraphic gfx/pressfire_label.png
 
+ rem --- cart attract-slide art (boot splash): striped umbrella, stainless cart,
+ rem     and the chunky HOT DOG! title word (glow-cycled at runtime).
+ rem     newblock: these are big and won't fit the remaining 4k gfx block ---
+ newblock
+ incgraphic gfx/cart_umbrella.png
+ incgraphic gfx/cart_body.png
+ incgraphic gfx/hotdog_title.png
+ rem --- cart-slide intro credit (org name = 3 word-sprites on one row) ---
+ incgraphic gfx/caa1_label.png
+ incgraphic gfx/caa2_label.png
+ incgraphic gfx/caa3_label.png
+ incgraphic gfx/presents_label.png
+
  rem --- variables ---
  dim bunx=a
  dim buny=b
@@ -76,6 +89,7 @@
  dim tuneon=x
  dim splitactive=y
  dim showitem=z
+ dim musicdone=k
 
  rem --- palette 0: bun (tan body, brown shade, dark poppy seeds) ---
  P0C1=$1C
@@ -97,10 +111,75 @@
  P4C2=$44
  P4C3=$44
 
+ rem --- palette 3: cart umbrella (red & white stripes, white valance/finial) ---
+ P3C1=$48
+ P3C2=$0F
+ P3C3=$0F
+
+ rem --- palette 7: stainless cart (light silver, steel grey, black outline) ---
+ P7C1=$0A
+ P7C2=$06
+ P7C3=$00
+
+ rem --- palette 6: HOT DOG! splash word; C1 is glow-cycled on the cart slide ---
+ P6C1=$1E
+ P6C2=$1E
+ P6C3=$1E
+
  state=0
  tuneon=0
  showitem=0
  splitactive=0
+ musicdone=0
+
+ rem ===================== CART SLIDE (boot splash, once) =====================
+ rem  Full-screen 160A: the Sabrett umbrella cart with a bouncing, glowing
+ rem  HOT DOG! word. Holds ~5s (5 x 60 frames) then falls into the marquee.
+ rem  Fire skips straight to the game. Starts the marquee tune so music covers
+ rem  the whole attract. Reuses spare title-time vars (reset by newgame).
+cartslide
+ splitactive=0
+ adjustvisible 0 11
+ displaymode 160A
+ rem --- 'repeat' loops the tune; stopsong fires after the first full roll call ---
+ if tuneon=0 then playsong hotdogmarch 100 repeat : tuneon=1
+ frame=0
+ catches=0
+ inv=0
+ kspeed=0
+ kdirx=0
+cartloop
+ clearscreen
+ BACKGRND=$00
+ frame=frame+1
+ inv=inv+1
+ rem --- 5-second hold, then on to the marquee ---
+ if frame>=60 then frame=0 : catches=catches+1
+ if catches>=5 then goto titlescreen
+ rem --- glow: cycle the HOT DOG! ink through yellow -> orange -> red ---
+ kspeed=kspeed+1
+ if kspeed>=14 then kspeed=0 : kdirx=kdirx+1
+ if kdirx>2 then kdirx=0
+ if kdirx=0 then P6C1=$1E
+ if kdirx=1 then P6C1=$2E
+ if kdirx=2 then P6C1=$48
+ rem --- bounce: vertical bob for the title word from a small table ---
+ ix=inv&15
+ iy=bobtab[ix]
+ iy=iy+30
+ rem --- intro credit on one row (CHICAGOLAND ATARI ALLIANCE), PRESENTS below,
+ rem     then umbrella + cart and the bobbing HOTDOG! word. No PRESS FIRE on this
+ rem     screen (more room); fire still skips straight to the game. ---
+ plotsprite caa1_label 5 2 4
+ plotsprite caa2_label 5 74 4
+ plotsprite caa3_label 5 110 4
+ plotsprite presents_label 5 48 14
+ plotsprite cart_umbrella 3 38 54
+ plotsprite cart_body 7 48 72
+ plotsprite hotdog_title 6 43 iy
+ drawscreen
+ if joy0fire then stopsong : playsfx sfx_powerup : gosub newgame : state=1 : goto playloop
+ goto cartloop
 
  rem ===================== TITLE =====================
  rem  Split display: 320A crisp text in the header + footer, with a 160A band
@@ -109,22 +188,24 @@
 titlescreen
  splitactive=1
  adjustvisible 6 8
- if tuneon=0 then playsong hotdogmarch 100 : tuneon=1
+ if tuneon=0 then playsong hotdogmarch 100 repeat : tuneon=1
+ frame=0
+ gosub chaseinit
 titleloop
  displaymode 320A
  clearscreen
  BACKGRND=$00
  frame=frame+1
  rem --- ketchup beat: gentle red flash behind the title ---
- if showitem=5 && frame&16 then BACKGRND=$42
+ if showitem=7 && frame&16 then BACKGRND=$42
  rem --- header (320A crisp), centered: x=(160-len*4)/2 ---
  plotchars 'HOTDOG!' 5 66 2
  plotchars 'CATCH THE FOOD' 5 52 4
  plotchars 'AVOID THE KETCHUP' 5 46 5
- rem --- 160A ingredient showcase, advancing on a timer (~on the beat) ---
- if frame>=50 then frame=0 : showitem=showitem+1
- if showitem>5 then showitem=0
- gosub drawshowcase
+ rem --- attract: scenes 0-1 = the (slow) chase gag, shown FIRST; scenes 2-7 =
+ rem     the food roll call. drawscene runs the active scene and its own
+ rem     advance/wrap, so the title loop just dispatches. ---
+ gosub drawscene
  rem --- footer (320A crisp), below the showcase name/role ---
  plotchars 'PRESS FIRE' 5 60 11
  drawscreen
@@ -287,22 +368,89 @@ gothit
  rem     title. Foods 0-3 set their P2 palette via setfoodpalette.
  rem     plotchars x centered = (160 - len*4)/2 = 80 - len*2. ---
 drawshowcase
- if showitem<4 then itype=showitem : gosub setfoodpalette
+ rem --- foods are scenes 2-5 (itype 0-3); bun=6, ketchup=7 use global palettes ---
+ if showitem<6 then itype=showitem-2 : gosub setfoodpalette
  rem --- sprite low in the 160A band, just above the name (band is ~y96-127) ---
- if showitem=0 then plotsprite frank 2 72 110
- if showitem=1 then plotsprite mustard 2 72 110
- if showitem=2 then plotsprite relish 2 70 110
- if showitem=3 then plotsprite onion 2 72 110
- if showitem=4 then plotsprite bun 0 72 110
+ if showitem=2 then plotsprite frank 2 72 110
+ if showitem=3 then plotsprite mustard 2 72 110
+ if showitem=4 then plotsprite relish 2 70 110
+ if showitem=5 then plotsprite onion 2 72 110
+ if showitem=6 then plotsprite bun 0 72 110
  rem --- ketchup is taller (22px); raise it so it bottom-aligns inside the band ---
- if showitem=5 then plotsprite ketchup 1 72 104
+ if showitem=7 then plotsprite ketchup 1 72 104
  rem --- name (320A footer, same font), centered ---
- if showitem=0 then plotchars 'FRANKS' 5 68 9
- if showitem=1 then plotchars 'MUSTARD' 5 66 9
- if showitem=2 then plotchars 'RELISH' 5 68 9
- if showitem=3 then plotchars 'ONIONS' 5 68 9
- if showitem=4 then plotchars 'BUN' 5 74 9 : plotchars 'PLAYER' 5 68 10
- if showitem=5 then plotchars 'KETCHUP' 5 66 9 : plotchars 'ENEMY' 5 70 10
+ if showitem=2 then plotchars 'FRANKS' 5 68 9
+ if showitem=3 then plotchars 'MUSTARD' 5 66 9
+ if showitem=4 then plotchars 'RELISH' 5 68 9
+ if showitem=5 then plotchars 'ONIONS' 5 68 9
+ if showitem=6 then plotchars 'BUN' 5 74 9 : plotchars 'PLAYER' 5 68 10
+ if showitem=7 then plotchars 'KETCHUP' 5 66 9 : plotchars 'ENEMY' 5 70 10
+ return
+
+ rem --- attract scene dispatch: 0-1 = chase gag (shown FIRST), 2-7 = roll call.
+ rem     Chase scenes advance themselves on sprite position; roll-call scenes
+ rem     advance on a frame timer and wrap 7 -> 0 back into the chase. ---
+drawscene
+ if showitem<=1 then gosub drawchase : return
+ gosub drawshowcase
+ if frame<70 then return
+ frame=0
+ showitem=showitem+1
+ if showitem>7 then showitem=0
+ rem --- first time the roll call wraps (all food shown once): stop the tune ---
+ if showitem=0 && musicdone=0 then stopsong : musicdone=1
+ gosub chaseinit
+ return
+
+ rem --- (re)position the chase as scene 0 begins: dog (frank, ix) ahead at x40,
+ rem     bun (bunx) a gap (kx) behind, gain counter (ky) cleared, frank palette.
+ rem     No-op for any other scene, so it's safe to call on boot and every wrap.
+ rem     kx/ky are the gameplay ketchup coords -- reused here, reset by newgame. ---
+chaseinit
+ if showitem=0 then ix=40 : kx=32 : ky=0 : bunx=8 : itype=0 : gosub setfoodpalette
+ return
+
+ rem --- "BUN CHASES DOG / KETCHUP CHASES BUN" attract gag (SLOW, with tension) -
+ rem  Scene 0: the frank strolls in from the left; the bun chases a touch faster
+ rem  so the gap (kx) keeps closing and it ALMOST grabs the dog right as the dog
+ rem  slips off the right edge.
+ rem  Scene 1: the bun turns and flees left; a ketchup bottle gives chase from
+ rem  the right, SPEEDING UP as the bun nears the edge for a near-miss, then the
+ rem  attract rolls on into the food roll call (scene 2).
+ rem  Motion is gated to every other frame (frame&1) so the gag plays slowly; the
+ rem  per-scene step is in stepA/stepB. The gap (kx) is floored so the chaser
+ rem  never actually overtakes. Sprites stay horizontally separated (one object
+ rem  per scanline -> no flicker); the scene-0/1 branch keeps both halves off the
+ rem  transition frame. ---
+drawchase
+ if showitem=1 then goto chaseB
+ rem -- scene 0: draw dog + bun, then close the gap on alternate frames --
+ plotchars 'GET THE DOG!' 5 56 9
+ plotsprite frank 2 ix 110 : plotsprite bun 0 bunx 110
+ if frame&1 then gosub stepA
+ return
+stepA
+ ix=ix+1
+ ky=ky+1
+ if ky>=4 then ky=0 : kx=kx-1
+ if kx<3 then kx=3
+ bunx=ix-kx
+ if ix>=158 then showitem=1 : bunx=150 : kx=20 : ky=0 : ix=170
+ return
+chaseB
+ rem -- scene 1: draw bun + ketchup, then close the gap on alternate frames --
+ plotchars 'NO KETCHUP!' 5 58 9
+ plotsprite bun 0 bunx 110 : plotsprite ketchup 1 ix 104
+ if frame&1 then gosub stepB
+ return
+stepB
+ bunx=bunx-1
+ ky=ky+1
+ if ky>=10 then ky=0 : kx=kx-1
+ if bunx<35 then kx=kx-1
+ if kx<4 then kx=4
+ ix=bunx+kx
+ if bunx<=6 then showitem=2 : frame=0
  return
 
  rem ===================== DISPLAY-SPLIT INTERRUPTS =====================
@@ -321,6 +469,11 @@ bottomscreenroutine
  if splitactive then displaymode 320A else displaymode 160A
  WSYNC=1
  return
+
+ rem --- cart-slide title bob: gentle 0..6..0 vertical offset (16-frame loop) ---
+ data bobtab
+ 0,0,1,2,3,4,5,5,6,6,5,4,3,2,1,0
+end
 
  rem ===================== SOUND DATA =====================
  rem  Title-screen tune (TIA tracker) + event sound effects.

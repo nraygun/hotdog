@@ -45,8 +45,8 @@ def chunk(tag, data):
     return struct.pack(">I", len(data)) + c + struct.pack(">I", zlib.crc32(c) & 0xffffffff)
 
 
-def render(word):
-    gap = "000"                       # 3-px space between 5-px glyphs -> 8-px cells
+def render(word, gapn=3):
+    gap = "0" * gapn                   # inter-glyph gap; 3 -> 8-px cells, smaller packs tighter
     rows = []
     for r in range(7):
         rows.append("".join(FONT[c][r].replace("1", "1") + gap for c in word))
@@ -58,8 +58,8 @@ def render(word):
     return rows, w, len(rows)
 
 
-def write_label(name, word):
-    rows, w, h = render(word)
+def write_label(name, word, gapn=3):
+    rows, w, h = render(word, gapn)
     m = {"0": 0, "1": 1}
     raw = bytearray()
     for line in rows:
@@ -80,6 +80,13 @@ if __name__ == "__main__":
     write_label("score_label.png", "SCORE")
     write_label("gameover_label.png", "GAME OVER")
     write_label("pressfire_label.png", "PRESS FIRE")
+    # cart-slide intro credit. A single 156-px sprite is too wide for Maria to
+    # draw on one line (it clipped to garbage), so the org name is three tight
+    # word-sprites laid out on one row; PRESENTS sits centered below.
+    write_label("caa1_label.png", "CHICAGOLAND", 1)
+    write_label("caa2_label.png", "ATARI", 1)
+    write_label("caa3_label.png", "ALLIANCE", 1)
+    write_label("presents_label.png", "PRESENTS")
     # NOTE: the title attract-mode showcase draws ingredient NAMES as 320A
     # plotchars text (same atascii font), not 160A label graphics, so no
     # name_*/role_* labels are generated here.

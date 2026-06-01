@@ -6,3 +6,6 @@
 7800basic_variable_redefs.h
 includes.7800
 a78info.cfg
+
+# emulator-written config (a7800 test runs)
+cfg/
